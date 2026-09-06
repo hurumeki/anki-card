@@ -1,0 +1,11 @@
+{
+  "name": "anki-card",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "オフライン動作する間隔反復（SM-2）暗記PWA",
+  "scripts": {
+    "test": "node --test test/run.js",
+    "start": "npx --yes http-server -p 8080 -c-1 ."
+  }
+}
