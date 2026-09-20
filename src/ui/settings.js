@@ -2,12 +2,18 @@
 import * as db from '../db.js';
 import { DEFAULT_SETTINGS, SETTING_FIELDS } from '../settings.js';
 import { checkStorage, getStorageState } from '../pwa.js';
+import { DEFAULT_THEME, THEME_OPTIONS, loadThemePref, setTheme } from '../theme.js';
 import { h, header, toast } from './dom.js';
 
 export async function renderSettings(root, ctx) {
   const view = h('div', { class: 'screen' });
   view.appendChild(header('設定', { back: '#/' }));
 
+  // 表示（テーマは端末ごとの設定なのでlocalStorageに保存する）
+  view.appendChild(h('h2', { class: 'section' }, '表示'));
+  view.appendChild(h('div', { class: 'form' }, buildThemeField()));
+
+  view.appendChild(h('h2', { class: 'section' }, '出題と採点'));
   const current = { ...ctx.settings };
   const form = h('div', { class: 'form' });
 
@@ -76,6 +82,34 @@ export async function renderSettings(root, ctx) {
       )
     );
   }
+}
+
+function buildThemeField() {
+  const pref = loadThemePref();
+  const sel = h(
+    'select',
+    { class: 'input', onchange: () => setTheme(sel.value) },
+    THEME_OPTIONS.map(([v, label]) => h('option', { value: v, selected: v === pref }, label))
+  );
+  const defaultLabel = THEME_OPTIONS.find(([v]) => v === DEFAULT_THEME)[1];
+  return h(
+    'div',
+    { class: 'field' },
+    h('label', {}, 'テーマ'),
+    sel,
+    h('p', { class: 'hint' }, 'この端末のこのブラウザだけに保存されます'),
+    h(
+      'button',
+      {
+        class: 'btn tiny',
+        onclick: () => {
+          sel.value = setTheme(DEFAULT_THEME);
+          toast('既定値に戻しました');
+        },
+      },
+      `既定値に戻す（${defaultLabel}）`
+    )
+  );
 }
 
 function formatDefault(field) {

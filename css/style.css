@@ -1,18 +1,137 @@
 :root {
+  color-scheme: light;
+  /* 面と文字 */
   --bg: #f5f6f8;
   --surface: #ffffff;
   --text: #1c2024;
   --muted: #6b7280;
   --line: #dfe3e8;
+  --hover: #eef1f5;
+  --neutral-bg: #eef1f5;
+  /* 主色 */
   --primary: #2f6fed;
   --primary-dark: #2559c4;
+  --primary-bg: #f1f5ff;
+  /* 色付きボタン（主色・正誤）の上に載る文字色 */
+  --on-accent: #ffffff;
+  /* 判定色と、その淡い背景 */
   --correct: #1a9b62;
+  --correct-dark: #15804f;
+  --correct-bg: #e6f6ef;
+  --correct-bg-soft: #f1faf5;
   --partial: #d08700;
+  --partial-bg: #fdf3e0;
+  --partial-bg-soft: #fffaf0;
   --incorrect: #d64545;
+  --incorrect-dark: #bd3a3a;
+  --incorrect-line: #f0c2c2;
+  --incorrect-bg: #fdeeee;
+  --incorrect-bg-soft: #fdf2f2;
   --skipped: #6b7280;
+  /* 要確認マーク */
+  --check-bg: #fff5d6;
+  --check-line: #e8c76a;
+  --check-text: #8a6d1f;
+  /* 解答・解説のカード */
+  --answer-bg: #eef3ff;
+  --answer-line: #d6e2ff;
+  --explain-bg: #f7f8fa;
+  /* 重なり表示 */
+  --overlay: rgba(15, 18, 25, 0.45);
+  --toast-bg: #1c2024;
+  --toast-text: #ffffff;
+  --shadow-bar: 0 -4px 16px rgba(0, 0, 0, 0.06);
+  --shadow-pop: 0 6px 24px rgba(0, 0, 0, 0.12);
   --radius: 12px;
   /* 操作バーの高さ（JSが実測して更新する） */
   --bar-h: 0px;
+}
+
+/*
+ * ダークの配色（仕様8.4）。
+ * 端末の設定に従う場合（下）と、設定でダークを選んだ場合（さらに下）の
+ * 2か所で同じ値を定義している。変更するときは両方を揃えること。
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #12151a;
+    --surface: #1b2027;
+    --text: #e6e9ee;
+    --muted: #a3abb8;
+    --line: #2e3543;
+    --hover: #262d38;
+    --neutral-bg: #272e3a;
+    --primary: #5b90ff;
+    /* ダークでは押下・ホバーで暗くせず明るくする */
+    --primary-dark: #7aa7ff;
+    --primary-bg: #1e2a44;
+    --on-accent: #0c1016;
+    --correct: #45c08a;
+    --correct-dark: #62d3a2;
+    --correct-bg: #14332a;
+    --correct-bg-soft: #122a23;
+    --partial: #e6a93b;
+    --partial-bg: #3a2c12;
+    --partial-bg-soft: #2f2612;
+    --incorrect: #f08080;
+    --incorrect-dark: #f59b9b;
+    --incorrect-line: #6b3535;
+    --incorrect-bg: #3a1f22;
+    --incorrect-bg-soft: #2f1c1e;
+    --skipped: #a3abb8;
+    --check-bg: #3a3116;
+    --check-line: #7a672c;
+    --check-text: #e8c76a;
+    --answer-bg: #1c2740;
+    --answer-line: #2f4269;
+    --explain-bg: #1e232b;
+    --overlay: rgba(4, 6, 10, 0.62);
+    --toast-bg: #e6e9ee;
+    --toast-text: #12151a;
+    --shadow-bar: 0 -4px 16px rgba(0, 0, 0, 0.5);
+    --shadow-pop: 0 6px 24px rgba(0, 0, 0, 0.6);
+  }
+}
+/* 設定でダークを選んだとき（端末の設定より優先する） */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #12151a;
+  --surface: #1b2027;
+  --text: #e6e9ee;
+  --muted: #a3abb8;
+  --line: #2e3543;
+  --hover: #262d38;
+  --neutral-bg: #272e3a;
+  --primary: #5b90ff;
+  /* ダークでは押下・ホバーで暗くせず明るくする */
+  --primary-dark: #7aa7ff;
+  --primary-bg: #1e2a44;
+  --on-accent: #0c1016;
+  --correct: #45c08a;
+  --correct-dark: #62d3a2;
+  --correct-bg: #14332a;
+  --correct-bg-soft: #122a23;
+  --partial: #e6a93b;
+  --partial-bg: #3a2c12;
+  --partial-bg-soft: #2f2612;
+  --incorrect: #f08080;
+  --incorrect-dark: #f59b9b;
+  --incorrect-line: #6b3535;
+  --incorrect-bg: #3a1f22;
+  --incorrect-bg-soft: #2f1c1e;
+  --skipped: #a3abb8;
+  --check-bg: #3a3116;
+  --check-line: #7a672c;
+  --check-text: #e8c76a;
+  --answer-bg: #1c2740;
+  --answer-line: #2f4269;
+  --explain-bg: #1e232b;
+  --overlay: rgba(4, 6, 10, 0.62);
+  --toast-bg: #e6e9ee;
+  --toast-text: #12151a;
+  --shadow-bar: 0 -4px 16px rgba(0, 0, 0, 0.5);
+  --shadow-pop: 0 6px 24px rgba(0, 0, 0, 0.6);
 }
 
 * { box-sizing: border-box; }
@@ -89,20 +208,20 @@ h3 { font-size: 0.95rem; margin: 12px 0 4px; }
   text-decoration: none;
   min-height: 44px;
 }
-.btn:hover:not(:disabled) { background: #eef1f5; }
+.btn:hover:not(:disabled) { background: var(--hover); }
 .btn:disabled { opacity: 0.45; cursor: default; }
-.btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+.btn.primary { background: var(--primary); border-color: var(--primary); color: var(--on-accent); }
 .btn.primary:hover:not(:disabled) { background: var(--primary-dark); }
-.btn.danger { color: var(--incorrect); border-color: #f0c2c2; }
-.btn.danger:hover:not(:disabled) { background: #fdeeee; }
-.btn.correct { background: var(--correct); border-color: var(--correct); color: #fff; flex: 1; }
-.btn.wrong { background: var(--incorrect); border-color: var(--incorrect); color: #fff; flex: 1; }
+.btn.danger { color: var(--incorrect); border-color: var(--incorrect-line); }
+.btn.danger:hover:not(:disabled) { background: var(--incorrect-bg); }
+.btn.correct { background: var(--correct); border-color: var(--correct); color: var(--on-accent); flex: 1; }
+.btn.wrong { background: var(--incorrect); border-color: var(--incorrect); color: var(--on-accent); flex: 1; }
 /* 共通の .btn:hover に上書きされないよう、色付きボタンのホバーを明示する */
-.btn.correct:hover:not(:disabled) { background: #15804f; }
-.btn.wrong:hover:not(:disabled) { background: #bd3a3a; }
+.btn.correct:hover:not(:disabled) { background: var(--correct-dark); }
+.btn.wrong:hover:not(:disabled) { background: var(--incorrect-dark); }
 .btn.small { padding: 6px 10px; font-size: 0.85rem; min-height: 36px; }
 .btn.tiny { padding: 3px 8px; font-size: 0.78rem; min-height: 30px; }
-.btn.on { background: #fff5d6; border-color: #e8c76a; }
+.btn.on { background: var(--check-bg); border-color: var(--check-line); }
 
 .row { display: flex; align-items: center; flex-wrap: wrap; }
 .row.gap { gap: 8px; }
@@ -123,9 +242,9 @@ h3 { font-size: 0.95rem; margin: 12px 0 4px; }
 }
 .notice p { margin: 6px 0 0; font-size: 0.9rem; }
 .notice ul { margin: 6px 0 0; padding-left: 20px; font-size: 0.9rem; }
-.notice.warn { border-left-color: var(--partial); background: #fffaf0; }
-.notice.error { border-left-color: var(--incorrect); background: #fdf2f2; }
-.notice.ok { border-left-color: var(--correct); background: #f1faf5; }
+.notice.warn { border-left-color: var(--partial); background: var(--partial-bg-soft); }
+.notice.error { border-left-color: var(--incorrect); background: var(--incorrect-bg-soft); }
+.notice.ok { border-left-color: var(--correct); background: var(--correct-bg-soft); }
 .error-list { max-height: 320px; overflow: auto; }
 
 /* デッキ一覧 */
@@ -149,7 +268,7 @@ h3 { font-size: 0.95rem; margin: 12px 0 4px; }
 .deck-name { display: block; font-weight: 600; }
 .deck-meta { display: flex; gap: 8px; color: var(--muted); font-size: 0.83rem; }
 .deck-actions { display: flex; gap: 6px; }
-.badge.due { background: #fdeeee; color: var(--incorrect); border-radius: 999px; padding: 0 8px; }
+.badge.due { background: var(--incorrect-bg); color: var(--incorrect); border-radius: 999px; padding: 0 8px; }
 
 /* カード一覧 */
 .filters { margin: 8px 0; display: flex; flex-direction: column; gap: 8px; }
@@ -168,13 +287,13 @@ h3 { font-size: 0.95rem; margin: 12px 0 4px; }
 .tag {
   font-size: 0.75rem;
   color: var(--muted);
-  background: #eef1f5;
+  background: var(--neutral-bg);
   border-radius: 999px;
   padding: 1px 8px;
 }
-.tag.check { background: #fff5d6; color: #8a6d1f; }
-.tag.due.hot { background: #fdeeee; color: var(--incorrect); }
-.tag.skipped { background: #eef1f5; color: var(--skipped); }
+.tag.check { background: var(--check-bg); color: var(--check-text); }
+.tag.due.hot { background: var(--incorrect-bg); color: var(--incorrect); }
+.tag.skipped { background: var(--neutral-bg); color: var(--skipped); }
 
 /* フォーム */
 .form { display: flex; flex-direction: column; gap: 14px; }
@@ -221,7 +340,7 @@ textarea.input { resize: vertical; }
 .question { font-size: 1.1rem; font-weight: 600; margin: 0 0 16px; white-space: pre-wrap; }
 .tokens { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
 .token {
-  background: #eef1f5;
+  background: var(--neutral-bg);
   border-radius: 8px;
   padding: 8px 12px;
   font-size: 1.05rem;
@@ -243,9 +362,9 @@ textarea.input { resize: vertical; }
   min-height: 46px;
 }
 .choice-btn:hover:not(:disabled) { border-color: var(--primary); }
-.choice-btn.correct { background: #e6f6ef; border-color: var(--correct); }
-.choice-btn.wrong { background: #fdeeee; border-color: var(--incorrect); }
-.choice-btn.picked { background: #f1f5ff; border-color: var(--primary); }
+.choice-btn.correct { background: var(--correct-bg); border-color: var(--correct); }
+.choice-btn.wrong { background: var(--incorrect-bg); border-color: var(--incorrect); }
+.choice-btn.picked { background: var(--primary-bg); border-color: var(--primary); }
 .choice-btn.static { cursor: default; }
 
 .matching-row {
@@ -259,15 +378,15 @@ textarea.input { resize: vertical; }
 }
 .matching-row .left { flex: 1; min-width: 100px; font-weight: 500; }
 .matching-row .input { flex: 1; min-width: 140px; }
-.matching-row.ok { background: #e6f6ef; }
-.matching-row.ng { background: #fdeeee; }
+.matching-row.ok { background: var(--correct-bg); }
+.matching-row.ng { background: var(--incorrect-bg); }
 .correction { font-size: 0.82rem; color: var(--incorrect); width: 100%; }
 
 .ordering-seq { list-style: decimal; padding-left: 28px; margin-top: 8px; }
 .ordering-seq li { margin-bottom: 6px; padding: 2px 6px; border-radius: 8px; }
 .ordering-seq li.hint { list-style: none; }
-.ordering-seq li.ok { background: #e6f6ef; }
-.ordering-seq li.ng { background: #fdeeee; }
+.ordering-seq li.ok { background: var(--correct-bg); }
+.ordering-seq li.ng { background: var(--incorrect-bg); }
 .ordering-pool { margin-top: 12px; }
 
 .score-line { margin: 12px 0 0; font-size: 0.9rem; font-weight: 600; }
@@ -289,13 +408,13 @@ textarea.input { resize: vertical; }
 .arrow.incorrect { color: var(--incorrect); }
 .arrow.skipped { color: var(--skipped); }
 .tag .arrow { font-size: 1rem; margin-left: 4px; vertical-align: -1px; }
-.tag.due.correct { background: #e6f6ef; color: var(--correct); }
-.tag.due.partial { background: #fdf3e0; color: var(--partial); }
-.tag.due.incorrect { background: #fdeeee; color: var(--incorrect); }
+.tag.due.correct { background: var(--correct-bg); color: var(--correct); }
+.tag.due.partial { background: var(--partial-bg); color: var(--partial); }
+.tag.due.incorrect { background: var(--incorrect-bg); color: var(--incorrect); }
 /* 解答：大きく濃く、色付きのカードで示す */
 .answer-block {
-  background: #eef3ff;
-  border: 1px solid #d6e2ff;
+  background: var(--answer-bg);
+  border: 1px solid var(--answer-line);
   border-radius: 10px;
   padding: 12px 14px;
   margin-top: 10px;
@@ -306,7 +425,7 @@ textarea.input { resize: vertical; }
 .explanation {
   border-left: 3px solid var(--line);
   border-radius: 0 10px 10px 0;
-  background: #f7f8fa;
+  background: var(--explain-bg);
   padding: 8px 12px;
   margin-top: 8px;
 }
@@ -324,10 +443,10 @@ textarea.input { resize: vertical; }
 /* リザルト */
 .summary { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 .sum { border-radius: 999px; padding: 4px 12px; font-size: 0.88rem; font-weight: 600; }
-.sum.correct { background: #e6f6ef; color: var(--correct); }
-.sum.partial { background: #fdf3e0; color: var(--partial); }
-.sum.incorrect { background: #fdeeee; color: var(--incorrect); }
-.sum.skipped { background: #eef1f5; color: var(--skipped); }
+.sum.correct { background: var(--correct-bg); color: var(--correct); }
+.sum.partial { background: var(--partial-bg); color: var(--partial); }
+.sum.incorrect { background: var(--incorrect-bg); color: var(--incorrect); }
+.sum.skipped { background: var(--neutral-bg); color: var(--skipped); }
 .result-item {
   background: var(--surface);
   border: 1px solid var(--line);
@@ -353,7 +472,7 @@ textarea.input { resize: vertical; }
   margin-right: -12px;
   padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
   border-top: 1px solid var(--line);
-  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-bar);
 }
 /* 本文の幅より広い画面では、下端に置いたパネルとして見せる */
 @media (min-width: 745px) {
@@ -395,7 +514,7 @@ textarea.input { resize: vertical; }
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 18, 25, 0.45);
+  background: var(--overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -419,8 +538,8 @@ textarea.input { resize: vertical; }
   bottom: calc(24px + env(safe-area-inset-bottom));
   bottom: calc(16px + max(var(--bar-h), env(safe-area-inset-bottom)));
   transform: translate(-50%, 20px);
-  background: #1c2024;
-  color: #fff;
+  background: var(--toast-bg);
+  color: var(--toast-text);
   padding: 10px 16px;
   border-radius: 999px;
   font-size: 0.88rem;
@@ -441,7 +560,7 @@ textarea.input { resize: vertical; }
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-pop);
   padding: 10px 12px;
   display: flex;
   gap: 8px;
