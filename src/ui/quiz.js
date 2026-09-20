@@ -7,11 +7,18 @@ import { shuffle } from '../util.js';
 import { setSessionActive } from '../pwa.js';
 import { actionBar, barRow, confirmDialog, h, navigate, syncBarHeight, toast, truncate } from './dom.js';
 
-const RESULT_LABEL = {
-  correct: '完答',
-  partial: '部分正解',
-  incorrect: '不正解',
-  skipped: 'スキップ',
+// 判定は文字ではなく、次回出題日の右の矢印と色で示す（↗ 上がった / → 変わらず / ↘ 下がった）
+const RESULT_ARROW = {
+  correct: '↗',
+  partial: '→',
+  incorrect: '↘',
+  skipped: '→',
+};
+const ARROW_LABEL = {
+  correct: '評価が上がりました',
+  partial: '評価は変わりません',
+  incorrect: '評価が下がりました',
+  skipped: '評価は変わりません',
 };
 
 let active = null; // { session, deckId }
@@ -123,11 +130,14 @@ function drawCurrent(view, ctx, session, deckId) {
 
   // 主操作のスロット。1画面ぶんの操作が同じ位置で入れ替わる
   const mainSlot = barRow('main');
+  const prevRow = prevAnswerRow(session);
   const selfJudge = card.type === 'single' || card.type === 'anagram';
   const isLast = session.index + 1 >= session.length;
 
   const showJudgement = async (result, score, detail) => {
     await session.answer(result, score);
+    // この問題の解答が出るので、前問の解答は役目を終える
+    if (prevRow) prevRow.remove();
     renderJudgement(resultArea, card, result, score, detail, session, ctx);
     answerArea.classList.add('answered');
     // 二重回答を防ぐため回答UIを操作不可にする
@@ -158,6 +168,8 @@ function drawCurrent(view, ctx, session, deckId) {
     // 左＝解答を表示 / 右＝わかる。表示後は 左＝あとでやる（不正解）/ 右＝おぼえた（正解）
     const reveal = h('button', { class: 'btn' }, '解答を表示');
     reveal.addEventListener('click', () => {
+      // この問題の解答を出したら、前問の解答は役目を終える
+      if (prevRow) prevRow.remove();
       resultArea.replaceChildren(...[answerBlock(card), explanationBlock(card)].filter(Boolean));
       const revealedAt = Date.now();
       // 「解答を表示」の連打で誤って自己採点されないよう、表示直後の操作は無視する
@@ -206,12 +218,13 @@ function drawCurrent(view, ctx, session, deckId) {
   );
 
   view.appendChild(
-    actionBar(prevAnswerRow(session), barRow('tools quiz-tools', undoBtn, skipBtn, checkBtn), mainSlot)
+    actionBar(prevRow, barRow('tools quiz-tools', undoBtn, skipBtn, checkBtn), mainSlot)
   );
 
   // 回答済みの問題に戻ってきた場合は判定結果を復元表示する
   if (item.result !== 'pending' && item.result !== 'skipped') {
     answerArea.classList.add('answered');
+    if (prevRow) prevRow.remove();
     renderJudgement(resultArea, card, item.result, item.score, null, session, ctx);
     mainSlot.replaceChildren(nextButton(view, ctx, session, deckId));
   }
@@ -427,23 +440,42 @@ function buildAnswerUI(area, card, settings, submit) {
 /** 判定結果・解答・解説の表示（「次へ」は操作バー側） */
 function renderJudgement(area, card, result, score, detail, session, ctx) {
   area.replaceChildren();
-  area.appendChild(
-    h(
-      'div',
-      { class: `judgement ${result}` },
-      h('span', { class: 'label' }, RESULT_LABEL[result]),
-      score === null || score === undefined
-        ? null
-        : h('span', { class: 'score' }, scoreText(score, detail, ctx.settings))
-    )
-  );
+  if (score !== null && score !== undefined) {
+    area.appendChild(h('p', { class: `score-line ${result}` }, scoreText(score, detail, ctx.settings)));
+  }
   area.appendChild(answerBlock(card));
   const explanation = explanationBlock(card);
   if (explanation) area.appendChild(explanation);
   const item = session.currentItem;
   if (item && item.nextDueDate) {
-    area.appendChild(h('p', { class: 'hint' }, `次回出題日：${item.nextDueDate}`));
+    area.appendChild(
+      h('p', { class: 'due-line' }, `次回出題日：${item.nextDueDate}`, resultArrow(result))
+    );
   }
+}
+
+/** リザルトのサマリ（件数と矢印のみ） */
+function summaryChip(result, count) {
+  return h(
+    'span',
+    { class: `sum ${result}`, title: `${ARROW_LABEL[result]}：${count}件`, 'aria-label': `${ARROW_LABEL[result]}：${count}件` },
+    RESULT_ARROW[result],
+    ` ${count}`
+  );
+}
+
+/** 評価の推移を示す矢印（判定区分の文字の代わり） */
+function resultArrow(result) {
+  return h(
+    'span',
+    {
+      class: `arrow ${result}`,
+      role: 'img',
+      'aria-label': ARROW_LABEL[result] || '',
+      title: ARROW_LABEL[result] || '',
+    },
+    RESULT_ARROW[result] || ''
+  );
 }
 
 export function scoreText(score, detail, settings) {
@@ -461,7 +493,7 @@ export function scoreText(score, detail, settings) {
 /** 解説（未入力なら null） */
 function explanationBlock(card) {
   if (!card.explanation || card.explanation.trim() === '') return null;
-  return h('div', { class: 'explanation' }, h('h3', {}, '解説'), h('p', {}, card.explanation));
+  return h('div', { class: 'explanation' }, h('p', {}, card.explanation));
 }
 
 /** 解答の1行表現（前問の解答表示用） */
@@ -478,7 +510,7 @@ function answerText(card) {
 
 /** 正解内容の表示 */
 function answerBlock(card) {
-  const box = h('div', { class: 'answer-block' }, h('h3', {}, '解答'));
+  const box = h('div', { class: 'answer-block' });
   if (card.type === 'choice') {
     box.appendChild(h('p', {}, card.choices[card.answerIndex] ?? ''));
   } else if (card.type === 'matching') {
@@ -517,9 +549,9 @@ export function renderResult(view, ctx, session, deckId) {
     h(
       'div',
       { class: 'summary' },
-      h('span', { class: 'sum correct' }, `完答 ${summary.correct}`),
-      h('span', { class: 'sum partial' }, `部分正解 ${summary.partial}`),
-      h('span', { class: 'sum incorrect' }, `不正解 ${summary.incorrect}`),
+      summaryChip('correct', summary.correct),
+      summaryChip('partial', summary.partial),
+      summaryChip('incorrect', summary.incorrect),
       h('span', { class: 'sum skipped' }, `スキップ ${summary.skipped}`)
     )
   );
@@ -569,14 +601,16 @@ export function renderResult(view, ctx, session, deckId) {
           h(
             'span',
             { class: 'result-meta' },
+            item.result === 'skipped' ? h('span', { class: 'tag skipped' }, 'スキップ') : null,
+            item.score === null || item.score === undefined
+              ? null
+              : h('span', { class: 'tag' }, `${Math.round(item.score * 100)}%`),
             h(
               'span',
-              { class: `tag ${item.result}` },
-              item.score === null || item.score === undefined
-                ? RESULT_LABEL[item.result]
-                : `${RESULT_LABEL[item.result]}（${Math.round(item.score * 100)}%）`
-            ),
-            h('span', { class: 'tag' }, item.nextDueDate ? `次回 ${item.nextDueDate}` : '次回 変更なし')
+              { class: `tag due ${item.result}` },
+              item.nextDueDate ? `次回 ${item.nextDueDate}` : '次回 変更なし',
+              resultArrow(item.result)
+            )
           )
         ),
         h('div', { class: 'result-actions' }, h('label', { class: 'check' }, checkbox, 'チェック'), toggle),
@@ -588,11 +622,16 @@ export function renderResult(view, ctx, session, deckId) {
   view.appendChild(
     actionBar(
       barRow(
-        'main',
+        'sub',
+        h('button', { class: 'btn', onclick: () => navigate('#/') }, 'ホームへ'),
         deckId
           ? h('button', { class: 'btn', onclick: () => navigate(`#/deck/${deckId}`) }, 'カード一覧へ')
-          : null,
-        h('button', { class: 'btn primary', onclick: () => navigate('#/') }, 'ホームへ')
+          : null
+      ),
+      barRow(
+        'main',
+        // ホームの「暗記開始」と同じく、同じデッキで新しいセットを組み直す
+        h('button', { class: 'btn primary', onclick: () => ctx.rerender() }, '続ける')
       )
     )
   );

@@ -1,6 +1,6 @@
 // Service Worker（仕様6.3）
 // キャッシュ名にビルドバージョンを含め、activate時に旧キャッシュを削除する。
-const VERSION = 'v1.2.0';
+const VERSION = 'v1.3.0';
 const CACHE_NAME = `memoapp-${VERSION}`;
 
 const APP_SHELL = [
