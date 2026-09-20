@@ -2,7 +2,7 @@
 import * as db from '../db.js';
 import { cardToRow, toCsv } from '../csv.js';
 import { TYPE_LABEL } from '../format.js';
-import { downloadText, h, header, navigate, promptDialog, toast, truncate } from './dom.js';
+import { actionBar, barRow, downloadText, h, header, navigate, promptDialog, toast, truncate } from './dom.js';
 import { deleteDeckFlow } from './home.js';
 import { nowIso, today } from '../util.js';
 
@@ -38,29 +38,27 @@ export async function renderCardList(root, ctx, deckId) {
     })
   );
 
-  if (!unassigned) {
-    view.appendChild(
-      h(
-        'div',
-        { class: 'row gap' },
-        h(
-          'button',
-          { class: 'btn primary', onclick: () => navigate(`#/session/${deckId}`) },
-          '暗記開始'
+  // 主要な操作は画面下部の操作バーにまとめる（末尾で追加）
+  const bar = unassigned
+    ? actionBar(barRow('main', h('a', { class: 'btn primary', href: '#/card/new/none' }, '＋ カード作成')))
+    : actionBar(
+        barRow(
+          'sub',
+          h('a', { class: 'btn', href: `#/card/new/${deckId}` }, '＋ カード作成'),
+          h('a', { class: 'btn', href: `#/import/${deckId}` }, 'CSVインポート')
         ),
-        h('a', { class: 'btn', href: `#/card/new/${deckId}` }, '＋ カード作成'),
-        h('a', { class: 'btn', href: `#/import/${deckId}` }, 'CSVインポート')
-      )
-    );
-  } else {
-    view.appendChild(
-      h(
-        'div',
-        { class: 'row gap' },
-        h('a', { class: 'btn', href: '#/card/new/none' }, '＋ カード作成'),
-        h('p', { class: 'hint' }, '未所属カードは暗記セットの出題対象外です')
-      )
-    );
+        barRow(
+          'main',
+          h(
+            'button',
+            { class: 'btn primary', onclick: () => navigate(`#/session/${deckId}`) },
+            '暗記開始'
+          )
+        )
+      );
+
+  if (unassigned) {
+    view.appendChild(h('p', { class: 'hint' }, '未所属カードは暗記セットの出題対象外です'));
   }
 
   const search = h('input', {
@@ -89,6 +87,7 @@ export async function renderCardList(root, ctx, deckId) {
     )
   );
   view.appendChild(listEl);
+  view.appendChild(bar);
   root.appendChild(view);
 
   const matches = () => {

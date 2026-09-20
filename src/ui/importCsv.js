@@ -1,7 +1,7 @@
 // CSVインポート画面（仕様4.3 / 7章）
 import * as db from '../db.js';
 import { parseImportCsv } from '../csv.js';
-import { h, header, navigate, toast } from './dom.js';
+import { actionBar, barRow, h, header, navigate, toast } from './dom.js';
 
 export async function renderImport(root, ctx, presetDeckId) {
   const decks = await db.listDecks();
@@ -59,10 +59,10 @@ export async function renderImport(root, ctx, presetDeckId) {
         h('label', { class: 'check' }, optImportReview, '回答状況を取り込む'),
         h('p', { class: 'hint' }, '両方OFFの場合、既存IDの行はスキップされます')
       ),
-      resultArea,
-      h('div', { class: 'row gap' }, runBtn)
+      resultArea
     )
   );
+  view.appendChild(actionBar(barRow('main', runBtn)));
 
   fileInput.addEventListener('change', async () => {
     resultArea.replaceChildren();

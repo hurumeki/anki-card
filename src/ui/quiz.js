@@ -5,7 +5,7 @@ import { matchingCorrectCount, matchingScore, judgeScore, orderingScore } from '
 import { startSession } from '../session.js';
 import { shuffle } from '../util.js';
 import { setSessionActive } from '../pwa.js';
-import { confirmDialog, h, navigate, toast, truncate } from './dom.js';
+import { actionBar, barRow, confirmDialog, h, navigate, syncBarHeight, toast, truncate } from './dom.js';
 
 const RESULT_LABEL = {
   correct: '完答',
@@ -37,9 +37,13 @@ export async function renderQuiz(root, ctx, deckId) {
             ? '本日復習するカードはありません。設定の出題範囲を「全て」にすると、期日に関係なく出題できます。'
             : 'このデッキにはカードがありません。')
         ),
-        h('div', { class: 'row gap' },
-          h('a', { class: 'btn', href: `#/deck/${deckId}` }, 'カード一覧へ'),
-          h('a', { class: 'btn', href: '#/settings' }, '設定'))
+        actionBar(
+          barRow(
+            'main',
+            h('a', { class: 'btn primary', href: `#/deck/${deckId}` }, 'カード一覧へ'),
+            h('a', { class: 'btn', href: '#/settings' }, '設定')
+          )
+        )
       )
     );
     return;
@@ -116,18 +120,25 @@ function drawCurrent(view, ctx, session, deckId) {
     'やり直し'
   );
 
+  // 主操作のスロット。「解答を表示」→「不正解／正解」→「次へ」を同じ位置で入れ替える
+  const mainSlot = barRow('main');
+  const selfJudge = card.type === 'single' || card.type === 'anagram';
+
   const showJudgement = async (result, score, detail) => {
     await session.answer(result, score);
-    renderJudgement(resultArea, card, result, score, detail, session, view, ctx, deckId);
+    renderJudgement(resultArea, card, result, score, detail, session, ctx);
     answerArea.classList.add('answered');
     // 二重回答を防ぐため回答UIを操作不可にする
     answerArea.querySelectorAll('button, select, input').forEach((el) => {
       el.disabled = true;
     });
     undoBtn.disabled = !session.canUndo();
+    mainSlot.replaceChildren(nextButton(view, ctx, session, deckId));
   };
 
-  buildAnswerUI(answerArea, card, settings, showJudgement);
+  buildAnswerUI(answerArea, card, settings, showJudgement, mainSlot);
+  // 選択式は回答時に自動判定されるため、主操作の位置を保つよう「次へ」を無効状態で置く
+  if (!selfJudge) mainSlot.appendChild(nextButton(view, ctx, session, deckId, true));
 
   // 画面内機能
   const checkBtn = h('button', { class: 'btn small' }, 'チェック');
@@ -141,36 +152,54 @@ function drawCurrent(view, ctx, session, deckId) {
     toast(next && next.checked ? 'チェックを付けました' : 'チェックを外しました');
   });
 
+  const skipBtn = h(
+    'button',
+    {
+      class: 'btn small',
+      onclick: async () => {
+        await session.skip();
+        session.next();
+        drawCurrent(view, ctx, session, deckId);
+      },
+    },
+    'スキップ'
+  );
+
   view.appendChild(
-    h(
-      'div',
-      { class: 'quiz-tools' },
-      undoBtn,
-      h(
-        'button',
-        {
-          class: 'btn small',
-          onclick: async () => {
-            await session.skip();
-            session.next();
-            drawCurrent(view, ctx, session, deckId);
-          },
-        },
-        'スキップ'
-      ),
-      checkBtn
-    )
+    actionBar(barRow('tools quiz-tools', undoBtn, skipBtn, checkBtn), mainSlot)
   );
 
   // 回答済みの問題に戻ってきた場合は判定結果を復元表示する
   if (item.result !== 'pending' && item.result !== 'skipped') {
     answerArea.classList.add('answered');
-    renderJudgement(resultArea, card, item.result, item.score, null, session, view, ctx, deckId);
+    renderJudgement(resultArea, card, item.result, item.score, null, session, ctx);
+    mainSlot.replaceChildren(nextButton(view, ctx, session, deckId));
   }
+
+  syncBarHeight();
 }
 
-/** 形式ごとの回答UI（仕様4.7） */
-function buildAnswerUI(area, card, settings, submit) {
+/** 次の問題（最終問題ではリザルト）へ進む主操作 */
+function nextButton(view, ctx, session, deckId, disabled = false) {
+  return h(
+    'button',
+    {
+      class: 'btn primary',
+      disabled,
+      onclick: () => {
+        session.next();
+        drawCurrent(view, ctx, session, deckId);
+      },
+    },
+    session.index + 1 >= session.length ? 'リザルトへ' : '次へ'
+  );
+}
+
+/**
+ * 形式ごとの回答UI（仕様4.7）。
+ * mainSlot は操作バーの主操作スロットで、自己採点形式の操作をここに置く。
+ */
+function buildAnswerUI(area, card, settings, submit, mainSlot) {
   area.replaceChildren();
   if (card.type === 'single' || card.type === 'anagram') {
     if (card.type === 'anagram') {
@@ -180,37 +209,23 @@ function buildAnswerUI(area, card, settings, submit) {
       );
     }
     const selfArea = h('div', { class: 'self-judge' });
-    const reveal = h(
-      'button',
-      { class: 'btn primary' },
-      '解答を表示'
-    );
+    area.appendChild(selfArea);
+    const reveal = h('button', { class: 'btn primary' }, '解答を表示');
     reveal.addEventListener('click', () => {
-      reveal.remove();
       selfArea.appendChild(h('p', { class: 'shown-answer' }, card.answer));
-      selfArea.appendChild(
-        h(
-          'div',
-          { class: 'row gap' },
-          h('button', {
-            class: 'btn correct',
-            onclick: (e) => {
-              e.currentTarget.classList.add('chosen');
-              submit('correct', null);
-            },
-          }, '○ 正解'),
-          h('button', {
-            class: 'btn wrong',
-            onclick: (e) => {
-              e.currentTarget.classList.add('chosen');
-              submit('incorrect', null);
-            },
-          }, '× 不正解')
-        )
+      const revealedAt = Date.now();
+      // 「解答を表示」の連打で誤って自己採点されないよう、表示直後の操作は無視する
+      const judge = (result) => () => {
+        if (Date.now() - revealedAt < 300) return;
+        submit(result, null);
+      };
+      // 不正解＝左 / 正解＝右。解答表示と同じ位置に置き、指の移動を最小にする
+      mainSlot.replaceChildren(
+        h('button', { class: 'btn wrong', onclick: judge('incorrect') }, '× 不正解'),
+        h('button', { class: 'btn correct', onclick: judge('correct') }, '○ 正解')
       );
     });
-    area.appendChild(reveal);
-    area.appendChild(selfArea);
+    mainSlot.replaceChildren(reveal);
     return;
   }
 
@@ -372,8 +387,8 @@ function buildAnswerUI(area, card, settings, submit) {
   }
 }
 
-/** 判定結果・解答・解説の表示 */
-function renderJudgement(area, card, result, score, detail, session, view, ctx, deckId) {
+/** 判定結果・解答・解説の表示（「次へ」は操作バー側） */
+function renderJudgement(area, card, result, score, detail, session, ctx) {
   area.replaceChildren();
   area.appendChild(
     h(
@@ -393,23 +408,6 @@ function renderJudgement(area, card, result, score, detail, session, view, ctx, 
   if (item && item.nextDueDate) {
     area.appendChild(h('p', { class: 'hint' }, `次回出題日：${item.nextDueDate}`));
   }
-  area.appendChild(
-    h(
-      'div',
-      { class: 'row gap' },
-      h(
-        'button',
-        {
-          class: 'btn primary',
-          onclick: () => {
-            session.next();
-            drawCurrent(view, ctx, session, deckId);
-          },
-        },
-        session.index + 1 >= session.length ? 'リザルトへ' : '次へ'
-      )
-    )
-  );
 }
 
 export function scoreText(score, detail, settings) {
@@ -537,13 +535,15 @@ export function renderResult(view, ctx, session, deckId) {
   }
   view.appendChild(list);
   view.appendChild(
-    h(
-      'div',
-      { class: 'row gap' },
-      h('button', { class: 'btn primary', onclick: () => navigate('#/') }, 'ホームへ'),
-      deckId
-        ? h('button', { class: 'btn', onclick: () => navigate(`#/deck/${deckId}`) }, 'カード一覧へ')
-        : null
+    actionBar(
+      barRow(
+        'main',
+        deckId
+          ? h('button', { class: 'btn', onclick: () => navigate(`#/deck/${deckId}`) }, 'カード一覧へ')
+          : null,
+        h('button', { class: 'btn primary', onclick: () => navigate('#/') }, 'ホームへ')
+      )
     )
   );
+  syncBarHeight();
 }

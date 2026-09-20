@@ -49,6 +49,28 @@ export function header(title, { back = null, actions = [] } = {}) {
   );
 }
 
+/**
+ * 画面下部の操作バー。スマホ・タブレットでは画面下端に固定表示される。
+ * 子要素には barRow() で作った行を渡す。
+ */
+export function actionBar(...rows) {
+  return h('div', { class: 'action-bar' }, rows);
+}
+
+/**
+ * 操作バー内の1行。kind は 'main'（主操作）/ 'sub'（副操作）/ 'tools'（補助操作）。
+ */
+export function barRow(kind, ...children) {
+  return h('div', { class: `bar-row ${kind}` }, children);
+}
+
+/** 操作バーの高さを --bar-h に反映する（トースト・更新バナーの重なり防止） */
+export function syncBarHeight() {
+  const bar = document.querySelector('.action-bar');
+  const px = bar ? Math.ceil(bar.getBoundingClientRect().height) : 0;
+  document.documentElement.style.setProperty('--bar-h', `${px}px`);
+}
+
 let dialogHost = null;
 function host() {
   if (!dialogHost) {
@@ -128,6 +150,7 @@ export function toast(message) {
     document.body.appendChild(el);
   }
   el.textContent = message;
+  syncBarHeight();
   el.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), 2600);

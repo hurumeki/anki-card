@@ -1,7 +1,7 @@
 // カード作成／編集画面（仕様4.5）
 import * as db from '../db.js';
 import { CARD_TYPES, TYPE_LABEL, encodePair, parsePair } from '../format.js';
-import { confirmDialog, h, header, navigate, toast } from './dom.js';
+import { actionBar, barRow, confirmDialog, h, header, navigate, toast } from './dom.js';
 
 const NEEDS = {
   single: ['answer'],
@@ -272,31 +272,32 @@ export async function renderCardEdit(root, ctx, cardId, newDeckId) {
 
   const saveBtn = h('button', { class: 'btn primary' }, '保存');
   view.appendChild(
-    h(
-      'div',
-      { class: 'row gap sticky-actions' },
-      saveBtn,
-      !isNew
-        ? h(
-            'button',
-            {
-              class: 'btn danger',
-              onclick: async () => {
-                const ok = await confirmDialog(
-                  'カードの削除',
-                  'このカードと回答状況を削除します。取り消せません。',
-                  '削除する',
-                  'btn danger'
-                );
-                if (!ok) return;
-                await db.deleteCard(card.cardId);
-                toast('カードを削除しました');
-                navigate(backHref);
+    actionBar(
+      barRow(
+        'main',
+        !isNew
+          ? h(
+              'button',
+              {
+                class: 'btn danger',
+                onclick: async () => {
+                  const ok = await confirmDialog(
+                    'カードの削除',
+                    'このカードと回答状況を削除します。取り消せません。',
+                    '削除する',
+                    'btn danger'
+                  );
+                  if (!ok) return;
+                  await db.deleteCard(card.cardId);
+                  toast('カードを削除しました');
+                  navigate(backHref);
+                },
               },
-            },
-            '削除'
-          )
-        : null
+              '削除'
+            )
+          : null,
+        saveBtn
+      )
     )
   );
 

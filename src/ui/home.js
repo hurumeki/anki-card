@@ -2,7 +2,7 @@
 import * as db from '../db.js';
 import { BACKUP_WARN_DAYS } from '../settings.js';
 import { daysBetween } from '../util.js';
-import { confirmDialog, dialog, h, navigate, promptDialog, toast, truncate } from './dom.js';
+import { actionBar, barRow, confirmDialog, dialog, h, navigate, promptDialog, toast, truncate } from './dom.js';
 import { installGuide, isStandalone } from '../pwa.js';
 
 export async function renderHome(root, ctx) {
@@ -92,30 +92,31 @@ export async function renderHome(root, ctx) {
   view.appendChild(
     h(
       'div',
-      { class: 'row gap' },
-      h(
-        'button',
-        {
-          class: 'btn primary',
-          onclick: async () => {
-            const name = await promptDialog('デッキを作成', { label: 'デッキ名' });
-            if (!name) return;
-            const deck = await db.createDeck(name);
-            toast('デッキを作成しました');
-            navigate(`#/deck/${deck.deckId}`);
-          },
-        },
-        '＋ 新規デッキ'
-      ),
-      h('a', { class: 'btn', href: '#/import' }, 'CSVインポート')
+      { class: 'links' },
+      h('a', { href: '#/unassigned' }, `デッキ未所属カード（${unassigned}）`)
     )
   );
 
   view.appendChild(
-    h(
-      'div',
-      { class: 'links' },
-      h('a', { href: '#/unassigned' }, `デッキ未所属カード（${unassigned}）`)
+    actionBar(
+      barRow(
+        'main',
+        h('a', { class: 'btn', href: '#/import' }, 'CSVインポート'),
+        h(
+          'button',
+          {
+            class: 'btn primary',
+            onclick: async () => {
+              const name = await promptDialog('デッキを作成', { label: 'デッキ名' });
+              if (!name) return;
+              const deck = await db.createDeck(name);
+              toast('デッキを作成しました');
+              navigate(`#/deck/${deck.deckId}`);
+            },
+          },
+          '＋ 新規デッキ'
+        )
+      )
     )
   );
 
