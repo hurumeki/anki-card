@@ -456,9 +456,10 @@ function renderJudgement(area, card, result, score, detail, session, ctx) {
 
 /** リザルトのサマリ（件数と矢印のみ） */
 function summaryChip(result, count) {
+  const label = `${ARROW_LABEL[result]}：${count}件`;
   return h(
     'span',
-    { class: `sum ${result}`, title: `${ARROW_LABEL[result]}：${count}件`, 'aria-label': `${ARROW_LABEL[result]}：${count}件` },
+    { class: `sum ${result}`, title: label, 'aria-label': label },
     RESULT_ARROW[result],
     ` ${count}`
   );

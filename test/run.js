@@ -9,6 +9,7 @@ import { applyResult } from '../src/sm2.js';
 import { cardToRow, parseCsv, parseImportCsv, toCsv } from '../src/csv.js';
 import { buildQueue } from '../src/session.js';
 import { DEFAULT_SETTINGS } from '../src/settings.js';
+import { normalizeTheme, resolveTheme } from '../src/theme.js';
 
 const S = { ...DEFAULT_SETTINGS };
 
@@ -258,4 +259,20 @@ test('session: 全てモードの抽出（仕様5.1）', () => {
   assert.equal(cut.length, 2);
   const shuffled = buildQueue(entries, { ...S, scope: 'all', shuffleAll: true, setSize: null }, '2026-03-01');
   assert.equal(shuffled.length, 3);
+});
+
+test('theme: 設定値の正規化と適用（仕様8.4）', () => {
+  assert.equal(normalizeTheme('dark'), 'dark');
+  assert.equal(normalizeTheme('light'), 'light');
+  assert.equal(normalizeTheme('system'), 'system');
+  // 未知の値・未保存は「端末の設定に従う」に寄せる
+  assert.equal(normalizeTheme(null), 'system');
+  assert.equal(normalizeTheme('sepia'), 'system');
+
+  // 端末の設定に従う場合だけ prefers-color-scheme を見る
+  assert.equal(resolveTheme('system', true), 'dark');
+  assert.equal(resolveTheme('system', false), 'light');
+  assert.equal(resolveTheme('light', true), 'light');
+  assert.equal(resolveTheme('dark', false), 'dark');
+  assert.equal(resolveTheme('sepia', true), 'dark');
 });

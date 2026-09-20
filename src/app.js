@@ -1,6 +1,7 @@
 // アプリ本体（ルーティングと起動処理）
 import * as db from './db.js';
 import { checkStorage, registerServiceWorker, setSessionActive } from './pwa.js';
+import { initTheme } from './theme.js';
 import { clear, h, syncBarHeight } from './ui/dom.js';
 import { renderHome } from './ui/home.js';
 import { renderCardList } from './ui/cards.js';
@@ -86,6 +87,7 @@ window.addEventListener('beforeunload', (e) => {
 });
 
 (async function boot() {
+  initTheme();
   await db.openDb();
   ctx.settings = await db.loadSettings();
   await db.saveSettings(ctx.settings); // 初回起動時に既定値を保存
