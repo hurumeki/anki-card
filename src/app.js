@@ -1,7 +1,7 @@
 // アプリ本体（ルーティングと起動処理）
 import * as db from './db.js';
 import { checkStorage, registerServiceWorker, setSessionActive } from './pwa.js';
-import { clear, h } from './ui/dom.js';
+import { clear, h, syncBarHeight } from './ui/dom.js';
 import { renderHome } from './ui/home.js';
 import { renderCardList } from './ui/cards.js';
 import { renderCardEdit } from './ui/cardEdit.js';
@@ -58,6 +58,7 @@ async function route() {
       default:
         location.hash = '#/';
     }
+    syncBarHeight();
   } catch (e) {
     console.error(e);
     clear(root);
