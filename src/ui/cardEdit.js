@@ -263,7 +263,8 @@ export async function renderCardEdit(root, ctx, cardId, newDeckId) {
               'p',
               { class: 'hint' },
               `次回 ${review.dueDate} / 連続正解 ${review.repetition} / 間隔 ${review.interval}日 / ` +
-                `EF ${review.easiness.toFixed(2)} / 回答 ${review.totalCount}（完答 ${review.correctCount} ・ 部分 ${review.partialCount}）`
+                `EF ${review.easiness.toFixed(2)} / 回答 ${review.totalCount}` +
+                `（完答 ${review.correctCount} ・ 部分 ${review.partialCount}）`
             )
           )
         : null

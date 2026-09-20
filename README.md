@@ -11,8 +11,10 @@
 ## 使い方
 
 ```bash
-npm start          # http://127.0.0.1:8080 で配信（任意の静的サーバでも可）
-npm test           # ロジックのテスト（node --test）
+npm start             # http://127.0.0.1:8080 で配信（任意の静的サーバでも可）
+npm test              # ロジックのテスト（node --test）
+npm run format:check  # 書式チェック（外部依存なし）
+npm run ci            # 書式チェック＋テスト（CIと同じ内容）
 ```
 
 Service Worker を有効にするため、`file://` ではなく HTTP(S) で開いてください。
@@ -21,6 +23,23 @@ Service Worker を有効にするため、`file://` ではなく HTTP(S) で開�
 
 リポジトリの Settings → Pages で「Deploy from a branch」を選び、対象ブランチのルート（`/`）を指定します。
 ビルド手順は不要です（`.nojekyll` を配置済み）。
+
+### CI
+
+`.github/workflows/ci.yml` が main へのpushとPRで `npm run format:check` と `npm test` を実行します。
+依存パッケージを持たないため、インストール手順はありません（Node 22）。
+
+書式チェック（`tools/format-check.js`）はNode標準機能だけで動き、整形ツールは導入していません。
+`git ls-files` の対象ファイルに対して次を確認します。
+
+| 確認内容 | 対象 |
+|---|---|
+| 行末の空白がない | 全テキストファイル |
+| 改行コードがLF（CRLFでない） | 同上 |
+| 行頭のインデントにタブを使っていない | 同上 |
+| BOMが付いていない | 同上 |
+| ファイル末尾が改行1つで終わる | 同上（空ファイルは対象外） |
+| 1行120文字以内（全角も1文字として数える） | `.md` / `.csv` 以外 |
 
 ## 画面構成
 
@@ -56,6 +75,8 @@ src/
   theme.js          テーマの保存・適用（6.4）
   ui/               各画面
 test/run.js         仕様の主要ロジックのテスト
+tools/format-check.js  書式チェック（外部依存なし）
+.github/workflows/ci.yml  CI（書式チェック＋テスト）
 ```
 
 ## 実装上の補足
