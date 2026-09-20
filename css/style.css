@@ -97,6 +97,9 @@ h3 { font-size: 0.95rem; margin: 12px 0 4px; }
 .btn.danger:hover:not(:disabled) { background: #fdeeee; }
 .btn.correct { background: var(--correct); border-color: var(--correct); color: #fff; flex: 1; }
 .btn.wrong { background: var(--incorrect); border-color: var(--incorrect); color: #fff; flex: 1; }
+/* 共通の .btn:hover に上書きされないよう、色付きボタンのホバーを明示する */
+.btn.correct:hover:not(:disabled) { background: #15804f; }
+.btn.wrong:hover:not(:disabled) { background: #bd3a3a; }
 .btn.small { padding: 6px 10px; font-size: 0.85rem; min-height: 36px; }
 .btn.tiny { padding: 3px 8px; font-size: 0.78rem; min-height: 30px; }
 .btn.on { background: #fff5d6; border-color: #e8c76a; }
@@ -226,14 +229,6 @@ textarea.input { resize: vertical; }
   padding: 8px 12px;
   font-size: 1.05rem;
 }
-.self-judge:empty { display: none; }
-.shown-answer {
-  font-size: 1.15rem;
-  font-weight: 600;
-  background: #f1f5ff;
-  border-radius: 10px;
-  padding: 10px;
-}
 .answer-area.answered .choice-btn:disabled { opacity: 1; }
 .answer-area.answered .matching select:disabled { opacity: 0.9; color: var(--text); }
 
@@ -298,6 +293,7 @@ textarea.input { resize: vertical; }
   margin-top: 8px;
 }
 .answer-block h3, .explanation h3 { margin-top: 0; }
+.answer-block p { font-size: 1.15rem; font-weight: 600; margin: 0; }
 .explanation p { white-space: pre-wrap; margin: 0; }
 .answer-pairs li, .answer-order li { margin-left: 4px; }
 .answer-order { list-style: decimal inside; }
@@ -335,6 +331,25 @@ textarea.input { resize: vertical; }
   padding: 10px 0 calc(10px + env(safe-area-inset-bottom));
 }
 .action-bar .bar-row { display: flex; align-items: center; gap: 8px; }
+/* 前問の解答（「わかる」で進んだときの答え合わせ用） */
+.prev-answer {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  font-size: 0.85rem;
+}
+.prev-answer .label { flex: 0 0 auto; color: var(--muted); }
+.prev-answer .text {
+  font-weight: 600;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
 /* 主操作は横幅いっぱい・大きめのタップ領域にする */
 .action-bar .bar-row.main > .btn { flex: 1 1 0; min-height: 52px; font-size: 1rem; }
 /* 破壊的操作は主操作より小さくし、誤タップを避ける */

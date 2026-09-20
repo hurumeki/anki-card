@@ -68,6 +68,7 @@ function drawCurrent(view, ctx, session, deckId) {
   }
   const card = session.current;
   const item = session.currentItem;
+  const drawnAt = Date.now();
   view.replaceChildren();
 
   view.appendChild(
@@ -120,9 +121,10 @@ function drawCurrent(view, ctx, session, deckId) {
     'やり直し'
   );
 
-  // 主操作のスロット。「解答を表示」→「不正解／正解」→「次へ」を同じ位置で入れ替える
+  // 主操作のスロット。1画面ぶんの操作が同じ位置で入れ替わる
   const mainSlot = barRow('main');
   const selfJudge = card.type === 'single' || card.type === 'anagram';
+  const isLast = session.index + 1 >= session.length;
 
   const showJudgement = async (result, score, detail) => {
     await session.answer(result, score);
@@ -134,11 +136,49 @@ function drawCurrent(view, ctx, session, deckId) {
     });
     undoBtn.disabled = !session.canUndo();
     mainSlot.replaceChildren(nextButton(view, ctx, session, deckId));
+    syncBarHeight();
   };
 
-  buildAnswerUI(answerArea, card, settings, showJudgement, mainSlot);
-  // 選択式は回答時に自動判定されるため、主操作の位置を保つよう「次へ」を無効状態で置く
-  if (!selfJudge) mainSlot.appendChild(nextButton(view, ctx, session, deckId, true));
+  // 自己採点は回答と同時に次の問題へ進む（最終問題のみ解答・解説を表示して留まる）
+  const submitSelf = async (result) => {
+    // 前の問題での連打が、開いたばかりの問題の回答にならないようにする
+    if (Date.now() - drawnAt < 300) return;
+    if (isLast) {
+      await showJudgement(result, null, null);
+      return;
+    }
+    await session.answer(result, null);
+    session.next();
+    drawCurrent(view, ctx, session, deckId);
+  };
+
+  buildAnswerUI(answerArea, card, settings, showJudgement);
+
+  if (selfJudge) {
+    // 左＝解答を表示 / 右＝わかる。表示後は 左＝あとでやる（不正解）/ 右＝おぼえた（正解）
+    const reveal = h('button', { class: 'btn' }, '解答を表示');
+    reveal.addEventListener('click', () => {
+      resultArea.replaceChildren(...[answerBlock(card), explanationBlock(card)].filter(Boolean));
+      const revealedAt = Date.now();
+      // 「解答を表示」の連打で誤って自己採点されないよう、表示直後の操作は無視する
+      const judge = (result) => () => {
+        if (Date.now() - revealedAt < 300) return;
+        submitSelf(result);
+      };
+      mainSlot.replaceChildren(
+        h('button', { class: 'btn wrong', onclick: judge('incorrect') }, 'あとでやる'),
+        h('button', { class: 'btn correct', onclick: judge('correct') }, 'おぼえた')
+      );
+      syncBarHeight();
+    });
+    mainSlot.replaceChildren(
+      reveal,
+      h('button', { class: 'btn correct', onclick: () => submitSelf('correct') }, 'わかる')
+    );
+  } else {
+    // 選択式は回答時に自動判定されるため、主操作の位置を保つよう「次へ」を無効状態で置く
+    mainSlot.appendChild(nextButton(view, ctx, session, deckId, true));
+  }
 
   // 画面内機能
   const checkBtn = h('button', { class: 'btn small' }, 'チェック');
@@ -166,7 +206,7 @@ function drawCurrent(view, ctx, session, deckId) {
   );
 
   view.appendChild(
-    actionBar(barRow('tools quiz-tools', undoBtn, skipBtn, checkBtn), mainSlot)
+    actionBar(prevAnswerRow(session), barRow('tools quiz-tools', undoBtn, skipBtn, checkBtn), mainSlot)
   );
 
   // 回答済みの問題に戻ってきた場合は判定結果を復元表示する
@@ -177,6 +217,21 @@ function drawCurrent(view, ctx, session, deckId) {
   }
 
   syncBarHeight();
+}
+
+/**
+ * 直前の問題の解答（解説は出さない）。「わかる」で解答を見ずに進んだ場合の
+ * 答え合わせに使う。誤りに気付いたら「やり直し」で戻れる。
+ */
+function prevAnswerRow(session) {
+  const prev = session.previous;
+  if (!prev) return null;
+  return h(
+    'div',
+    { class: 'prev-answer' },
+    h('span', { class: 'label' }, '前問の解答'),
+    h('span', { class: 'text' }, answerText(prev.card))
+  );
 }
 
 /** 次の問題（最終問題ではリザルト）へ進む主操作 */
@@ -197,9 +252,9 @@ function nextButton(view, ctx, session, deckId, disabled = false) {
 
 /**
  * 形式ごとの回答UI（仕様4.7）。
- * mainSlot は操作バーの主操作スロットで、自己採点形式の操作をここに置く。
+ * 自己採点形式（single / anagram）の操作は操作バー側にあるため、ここでは本文だけを組む。
  */
-function buildAnswerUI(area, card, settings, submit, mainSlot) {
+function buildAnswerUI(area, card, settings, submit) {
   area.replaceChildren();
   if (card.type === 'single' || card.type === 'anagram') {
     if (card.type === 'anagram') {
@@ -208,24 +263,6 @@ function buildAnswerUI(area, card, settings, submit, mainSlot) {
         h('div', { class: 'tokens' }, tokens.map((t) => h('span', { class: 'token' }, t)))
       );
     }
-    const selfArea = h('div', { class: 'self-judge' });
-    area.appendChild(selfArea);
-    const reveal = h('button', { class: 'btn primary' }, '解答を表示');
-    reveal.addEventListener('click', () => {
-      selfArea.appendChild(h('p', { class: 'shown-answer' }, card.answer));
-      const revealedAt = Date.now();
-      // 「解答を表示」の連打で誤って自己採点されないよう、表示直後の操作は無視する
-      const judge = (result) => () => {
-        if (Date.now() - revealedAt < 300) return;
-        submit(result, null);
-      };
-      // 不正解＝左 / 正解＝右。解答表示と同じ位置に置き、指の移動を最小にする
-      mainSlot.replaceChildren(
-        h('button', { class: 'btn wrong', onclick: judge('incorrect') }, '× 不正解'),
-        h('button', { class: 'btn correct', onclick: judge('correct') }, '○ 正解')
-      );
-    });
-    mainSlot.replaceChildren(reveal);
     return;
   }
 
@@ -401,9 +438,8 @@ function renderJudgement(area, card, result, score, detail, session, ctx) {
     )
   );
   area.appendChild(answerBlock(card));
-  if (card.explanation && card.explanation.trim() !== '') {
-    area.appendChild(h('div', { class: 'explanation' }, h('h3', {}, '解説'), h('p', {}, card.explanation)));
-  }
+  const explanation = explanationBlock(card);
+  if (explanation) area.appendChild(explanation);
   const item = session.currentItem;
   if (item && item.nextDueDate) {
     area.appendChild(h('p', { class: 'hint' }, `次回出題日：${item.nextDueDate}`));
@@ -420,6 +456,24 @@ export function scoreText(score, detail, settings) {
     return `${name} ${pct}%（${detail.correct}/${detail.total}）`;
   }
   return `一致率 ${pct}%`;
+}
+
+/** 解説（未入力なら null） */
+function explanationBlock(card) {
+  if (!card.explanation || card.explanation.trim() === '') return null;
+  return h('div', { class: 'explanation' }, h('h3', {}, '解説'), h('p', {}, card.explanation));
+}
+
+/** 解答の1行表現（前問の解答表示用） */
+function answerText(card) {
+  if (card.type === 'choice') return card.choices[card.answerIndex] ?? '';
+  if (card.type === 'matching') {
+    return parsePairs(card.choices)
+      .map((p, i) => (p ? `${p.left} — ${p.right}` : card.choices[i]))
+      .join(' / ');
+  }
+  if (card.type === 'ordering') return card.choices.join(' → ');
+  return card.answer;
 }
 
 /** 正解内容の表示 */
@@ -488,11 +542,8 @@ export function renderResult(view, ctx, session, deckId) {
           if (!loaded) {
             loaded = true;
             detail.appendChild(answerBlock(card));
-            if (card.explanation && card.explanation.trim() !== '') {
-              detail.appendChild(
-                h('div', { class: 'explanation' }, h('h3', {}, '解説'), h('p', {}, card.explanation))
-              );
-            }
+            const exp = explanationBlock(card);
+            if (exp) detail.appendChild(exp);
           }
         },
       },

@@ -69,6 +69,12 @@ export class Session {
     return this.index >= this.items.length;
   }
 
+  /** 直前の問題（前問の解答表示用）。セット先頭では null */
+  get previous() {
+    if (this.index === 0) return null;
+    return { card: this.cards[this.index - 1], item: this.items[this.index - 1] };
+  }
+
   itemFor(cardId) {
     return this.items.find((i) => i.cardId === cardId) || null;
   }
