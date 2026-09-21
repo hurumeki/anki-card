@@ -1,7 +1,7 @@
 // 設定画面（仕様4.6 / 6.2-4）
 import * as db from '../db.js';
 import { DEFAULT_SETTINGS, SETTING_FIELDS } from '../settings.js';
-import { checkStorage, getStorageState } from '../pwa.js';
+import { checkStorage, getStorageState, refreshUpdateNotice } from '../pwa.js';
 import { MODE_OPTIONS, loadMode, setMode } from '../mode.js';
 import { DEFAULT_THEME, THEME_OPTIONS, loadThemePref, setTheme } from '../theme.js';
 import { h, header, navigate, toast } from './dom.js';
@@ -92,7 +92,9 @@ function buildModeField() {
     {
       class: 'input',
       onchange: () => {
-        if (setMode(sel.value) !== 'kid') return;
+        const mode = setMode(sel.value);
+        refreshUpdateNotice();
+        if (mode !== 'kid') return;
         // こどもモードではこの設定画面を開けないのでホームへ戻す
         toast('こどもモードにしました');
         navigate('#/');

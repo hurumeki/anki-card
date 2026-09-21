@@ -16,7 +16,7 @@ import {
   toast,
   truncate,
 } from './dom.js';
-import { installGuide, isStandalone } from '../pwa.js';
+import { installGuide, isStandalone, refreshUpdateNotice } from '../pwa.js';
 
 export async function renderHome(root, ctx) {
   if (isKidMode()) return renderKidHome(root, ctx);
@@ -186,6 +186,7 @@ function kidHeader(ctx) {
     );
     if (!ok) return;
     setMode('adult');
+    refreshUpdateNotice();
     toast('おとなモードに戻しました');
     ctx.rerender();
   });

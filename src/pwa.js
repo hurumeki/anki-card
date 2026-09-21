@@ -1,5 +1,6 @@
 // PWA / 永続化まわり（仕様6.2 / 6.3）
 import { h, toast } from './ui/dom.js';
+import { isKidMode } from './mode.js';
 
 const state = {
   persisted: false,
@@ -25,7 +26,7 @@ export function setSessionActive(active) {
     }
     return;
   }
-  if (state.waitingWorker && !state.updateBannerShown) showUpdateBanner();
+  notifyUpdate();
 }
 
 export function isStandalone() {
@@ -81,7 +82,44 @@ export async function registerServiceWorker() {
 function onWaiting(worker) {
   state.waitingWorker = worker;
   if (state.sessionActive) return; // セット実施中は通知しない
-  showUpdateBanner();
+  notifyUpdate();
+}
+
+/**
+ * 待機中のService Workerをどう扱うか（仕様6.3 / 6.5）。
+ * おとなモードはバナーで知らせて操作を待つ。こどもモードはバナーを出さず、
+ * セット外であればそのまま適用する（更新するかどうかは子どもが判断することではなく、
+ * かといって出さないままでは端末がいつまでも古いままになるため）。
+ */
+function notifyUpdate() {
+  if (!state.waitingWorker) return;
+  if (isKidMode()) {
+    applyUpdate();
+    return;
+  }
+  if (!state.updateBannerShown) showUpdateBanner();
+}
+
+/** 待機中のService Workerを有効化する（controllerchange でリロードされる） */
+function applyUpdate() {
+  if (!state.waitingWorker) return;
+  state.waitingWorker.postMessage({ type: 'SKIP_WAITING' });
+}
+
+/**
+ * 表示モードを切り替えた直後に呼ぶ。
+ * こどもモードへ移ったときに、出したままのバナーを片付ける。
+ */
+export function refreshUpdateNotice() {
+  if (isKidMode()) {
+    const banner = document.querySelector('.update-banner');
+    if (banner) {
+      banner.remove();
+      state.updateBannerShown = false;
+    }
+  }
+  if (state.sessionActive) return;
+  notifyUpdate();
 }
 
 function showUpdateBanner() {
@@ -96,7 +134,7 @@ function showUpdateBanner() {
       {
         class: 'btn primary small',
         onclick: () => {
-          state.waitingWorker.postMessage({ type: 'SKIP_WAITING' });
+          applyUpdate();
           banner.remove();
           toast('更新を適用しています…');
         },
