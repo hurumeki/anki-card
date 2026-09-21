@@ -15,10 +15,12 @@
     <meta name="apple-mobile-web-app-title" content="暗記" />
     <link rel="stylesheet" href="./css/style.css" />
     <script>
-      // 初回描画前に配色を適用する（src/theme.js と同じキーを読む）
+      // 初回描画前に配色と表示モードを適用する（src/theme.js / src/mode.js と同じキーを読む）
       try {
         var t = localStorage.getItem('memoapp:theme');
         if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+        var m = localStorage.getItem('memoapp:mode');
+        if (m === 'kid') document.documentElement.dataset.mode = m;
       } catch (e) {}
     </script>
   </head>

@@ -71,6 +71,39 @@ export function syncBarHeight() {
   document.documentElement.style.setProperty('--bar-h', `${px}px`);
 }
 
+/**
+ * 長押し。ms ミリ秒押し続けると handler を呼ぶ。
+ * 指が動いた（スクロールした）場合と、途中で離した場合は取り消す。
+ * こどもモードの解除など、子どもに偶然押されたくない操作に使う。
+ */
+export function onLongPress(el, handler, ms = 1500) {
+  let timer = null;
+  let origin = null;
+  const cancel = () => {
+    clearTimeout(timer);
+    timer = null;
+    origin = null;
+  };
+  el.addEventListener('pointerdown', (e) => {
+    if (e.button) return; // 主ボタン（タッチ・左クリック）のみ
+    origin = { x: e.clientX, y: e.clientY };
+    timer = setTimeout(() => {
+      cancel();
+      handler();
+    }, ms);
+  });
+  el.addEventListener('pointermove', (e) => {
+    if (!origin) return;
+    if (Math.abs(e.clientX - origin.x) > 10 || Math.abs(e.clientY - origin.y) > 10) cancel();
+  });
+  for (const type of ['pointerup', 'pointercancel', 'pointerleave']) {
+    el.addEventListener(type, cancel);
+  }
+  // 長押しで選択メニューが出ると操作が中断されるため抑止する
+  el.addEventListener('contextmenu', (e) => e.preventDefault());
+  return el;
+}
+
 let dialogHost = null;
 function host() {
   if (!dialogHost) {

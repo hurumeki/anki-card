@@ -10,6 +10,8 @@ import { cardToRow, parseCsv, parseImportCsv, toCsv } from '../src/csv.js';
 import { buildQueue } from '../src/session.js';
 import { DEFAULT_SETTINGS } from '../src/settings.js';
 import { normalizeTheme, resolveTheme } from '../src/theme.js';
+import { isBlockedInKidMode, normalizeMode } from '../src/mode.js';
+import { WORDS, w } from '../src/words.js';
 
 const S = { ...DEFAULT_SETTINGS };
 
@@ -275,4 +277,35 @@ test('theme: 設定値の正規化と適用（仕様8.4）', () => {
   assert.equal(resolveTheme('light', true), 'light');
   assert.equal(resolveTheme('dark', false), 'dark');
   assert.equal(resolveTheme('sepia', true), 'dark');
+});
+
+test('mode: 表示モードの正規化と、こどもモードで塞ぐ画面', () => {
+  assert.equal(normalizeMode('kid'), 'kid');
+  assert.equal(normalizeMode('adult'), 'adult');
+  // 未知の値・未保存は「おとな」に寄せる（勝手に機能を隠す側へ倒さない）
+  assert.equal(normalizeMode(null), 'adult');
+  assert.equal(normalizeMode('child'), 'adult');
+
+  // 編集・CSV・設定にあたる画面は塞ぐ（URLからの直接遷移を防ぐ）
+  for (const key of ['deck', 'card', 'import', 'settings', 'unassigned']) {
+    assert.ok(isBlockedInKidMode(key), `${key} は塞ぐ`);
+  }
+  // ホーム（undefined）と暗記セットは通す
+  assert.ok(!isBlockedInKidMode(undefined));
+  assert.ok(!isBlockedInKidMode('session'));
+});
+
+test('words: こどもモードの文言表（仕様6.5）', () => {
+  for (const [key, pair] of Object.entries(WORDS)) {
+    assert.ok(Array.isArray(pair) && pair.length === 2, `${key} は［おとな, こども］の2件`);
+    for (const text of pair) {
+      assert.equal(typeof text, 'string', `${key} は文字列`);
+      assert.ok(text.trim() !== '', `${key} は空でない`);
+    }
+    assert.notEqual(pair[0], pair[1], `${key} は言い換えになっている`);
+  }
+
+  // localStorage のないNode上ではおとなモード扱いになる
+  assert.equal(w('stop'), WORDS.stop[0]);
+  assert.throws(() => w('存在しないキー'), /未定義の文言キー/);
 });

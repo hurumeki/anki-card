@@ -2,10 +2,24 @@
 import * as db from '../db.js';
 import { BACKUP_WARN_DAYS } from '../settings.js';
 import { daysBetween } from '../util.js';
-import { actionBar, barRow, confirmDialog, dialog, h, navigate, promptDialog, toast, truncate } from './dom.js';
-import { installGuide, isStandalone } from '../pwa.js';
+import { isKidMode, setMode } from '../mode.js';
+import { w } from '../words.js';
+import {
+  actionBar,
+  barRow,
+  confirmDialog,
+  dialog,
+  h,
+  navigate,
+  onLongPress,
+  promptDialog,
+  toast,
+  truncate,
+} from './dom.js';
+import { installGuide, isStandalone, refreshUpdateNotice } from '../pwa.js';
 
 export async function renderHome(root, ctx) {
+  if (isKidMode()) return renderKidHome(root, ctx);
   const settings = ctx.settings;
   const [decks, { stats, unassigned }] = await Promise.all([db.listDecks(), db.deckStats()]);
 
@@ -121,6 +135,62 @@ export async function renderHome(root, ctx) {
   );
 
   root.appendChild(view);
+}
+
+/**
+ * こどもモードのホーム（デッキを選んで暗記を始めるだけの画面）。
+ * 編集・CSV・設定への入口は置かない。URLからの直接遷移は app.js 側で塞いでいる。
+ */
+async function renderKidHome(root, ctx) {
+  const [decks, { stats }] = await Promise.all([db.listDecks(), db.deckStats()]);
+
+  const view = h('div', { class: 'screen' });
+  view.appendChild(kidHeader(ctx));
+
+  const list = h('ul', { class: 'kid-deck-list' });
+  if (decks.length === 0) {
+    list.appendChild(h('li', { class: 'empty' }, 'カードが まだ ありません。'));
+  }
+  for (const deck of decks) {
+    const st = stats.get(deck.deckId) || { count: 0, due: 0 };
+    list.appendChild(
+      h(
+        'li',
+        {},
+        h(
+          'button',
+          {
+            class: 'kid-deck',
+            disabled: st.count === 0,
+            onclick: () => navigate(`#/session/${deck.deckId}`),
+          },
+          h('span', { class: 'kid-deck-name' }, truncate(deck.name, 20)),
+          st.due > 0 ? h('span', { class: 'badge due' }, `きょう ${st.due}`) : null
+        )
+      )
+    );
+  }
+  view.appendChild(list);
+
+  root.appendChild(view);
+}
+
+/** こどもモードのヘッダ。タイトルの長押しだけがおとなモードへの出口 */
+function kidHeader(ctx) {
+  const title = h('h1', { class: 'holdable' }, w('appTitle'));
+  onLongPress(title, async () => {
+    const ok = await confirmDialog(
+      'おとなモードに戻す',
+      'デッキとカードの編集、CSVインポート・エクスポート、設定を使えるようにします。',
+      '戻す'
+    );
+    if (!ok) return;
+    setMode('adult');
+    refreshUpdateNotice();
+    toast('おとなモードに戻しました');
+    ctx.rerender();
+  });
+  return h('header', { class: 'app-header' }, title);
 }
 
 async function deckMenu(deck, ctx) {
