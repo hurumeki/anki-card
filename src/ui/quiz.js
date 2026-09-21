@@ -5,6 +5,7 @@ import { matchingCorrectCount, matchingScore, judgeScore, orderingScore } from '
 import { startSession } from '../session.js';
 import { shuffle } from '../util.js';
 import { setSessionActive } from '../pwa.js';
+import { isKidMode } from '../mode.js';
 import { actionBar, barRow, confirmDialog, h, navigate, syncBarHeight, toast, truncate } from './dom.js';
 
 // 判定は文字ではなく、次回出題日の右の矢印と色で示す（↗ 上がった / → 変わらず / ↘ 下がった）
@@ -44,13 +45,16 @@ export async function renderQuiz(root, ctx, deckId) {
             ? '本日復習するカードはありません。設定の出題範囲を「全て」にすると、期日に関係なく出題できます。'
             : 'このデッキにはカードがありません。')
         ),
-        actionBar(
-          barRow(
-            'main',
-            h('a', { class: 'btn primary', href: `#/deck/${deckId}` }, 'カード一覧へ'),
-            h('a', { class: 'btn', href: '#/settings' }, '設定')
+        // こどもモードではカード一覧・設定へ入れないため、ホームへ戻る道だけを残す
+        isKidMode()
+          ? actionBar(barRow('main', h('a', { class: 'btn primary', href: '#/' }, 'ホームへ')))
+          : actionBar(
+            barRow(
+              'main',
+              h('a', { class: 'btn primary', href: `#/deck/${deckId}` }, 'カード一覧へ'),
+              h('a', { class: 'btn', href: '#/settings' }, '設定')
+            )
           )
-        )
       )
     );
     return;
@@ -625,7 +629,7 @@ export function renderResult(view, ctx, session, deckId) {
       barRow(
         'sub',
         h('button', { class: 'btn', onclick: () => navigate('#/') }, 'ホームへ'),
-        deckId
+        deckId && !isKidMode()
           ? h('button', { class: 'btn', onclick: () => navigate(`#/deck/${deckId}`) }, 'カード一覧へ')
           : null
       ),

@@ -1,6 +1,7 @@
 // アプリ本体（ルーティングと起動処理）
 import * as db from './db.js';
 import { checkStorage, registerServiceWorker, setSessionActive } from './pwa.js';
+import { initMode, isBlockedInKidMode, isKidMode } from './mode.js';
 import { initTheme } from './theme.js';
 import { clear, h, syncBarHeight } from './ui/dom.js';
 import { renderHome } from './ui/home.js';
@@ -25,6 +26,12 @@ async function route() {
   // セット実施中に別画面へ移動した場合はセットを破棄する（仕様5.3）
   if (!key.startsWith('session') && currentRoute.startsWith('session')) setSessionActive(false);
   currentRoute = key;
+  // こどもモードでは暗記以外の画面に入れない。ボタンを隠すだけでは
+  // 履歴やブックマークから編集画面に入れてしまうため、ここでも塞ぐ。
+  if (isKidMode() && isBlockedInKidMode(parts[0])) {
+    location.hash = '#/';
+    return;
+  }
   ctx.settings = await db.loadSettings();
   clear(root);
   window.scrollTo(0, 0);
@@ -88,6 +95,7 @@ window.addEventListener('beforeunload', (e) => {
 
 (async function boot() {
   initTheme();
+  initMode();
   await db.openDb();
   ctx.settings = await db.loadSettings();
   await db.saveSettings(ctx.settings); // 初回起動時に既定値を保存

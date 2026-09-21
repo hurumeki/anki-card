@@ -570,3 +570,76 @@ textarea.input { resize: vertical; }
   max-width: 700px;
   margin: 0 auto;
 }
+
+
+/*
+ * こどもモード（表示モード＝こども）。
+ * data-mode は index.html のインラインスクリプトと src/mode.js が設定する。
+ * 配色はテーマ側の値をそのまま使い、ここでは文字とタップ領域の大きさだけを変える。
+ */
+:root[data-mode="kid"],
+:root[data-mode="kid"] body {
+  font-size: 18px;
+}
+:root[data-mode="kid"] { --radius: 16px; }
+/* 小さすぎる文字に下限を設ける（補足・タグ・スコアなど） */
+:root[data-mode="kid"] .hint,
+:root[data-mode="kid"] .tag,
+:root[data-mode="kid"] .score-line,
+:root[data-mode="kid"] .due-line,
+:root[data-mode="kid"] .prev-answer,
+:root[data-mode="kid"] .notice p { font-size: 1rem; }
+:root[data-mode="kid"] .app-header h1 { font-size: 1.3rem; }
+:root[data-mode="kid"] .progress { font-size: 1.1rem; }
+/* タップ領域を大きくする */
+:root[data-mode="kid"] .btn { font-size: 1.05rem; min-height: 52px; padding: 12px 18px; }
+:root[data-mode="kid"] .btn.small { font-size: 1rem; min-height: 48px; padding: 10px 14px; }
+:root[data-mode="kid"] .btn.tiny { font-size: 0.95rem; min-height: 44px; padding: 8px 12px; }
+:root[data-mode="kid"] .action-bar .bar-row.main > .btn { min-height: 64px; font-size: 1.15rem; }
+:root[data-mode="kid"] .choice-btn { font-size: 1.1rem; min-height: 60px; padding: 16px; }
+/* 問題・解答は特に大きく */
+:root[data-mode="kid"] .question { font-size: 1.35rem; }
+:root[data-mode="kid"] .token { font-size: 1.2rem; }
+:root[data-mode="kid"] .answer-block p { font-size: 1.45rem; }
+:root[data-mode="kid"] .answer-block ul,
+:root[data-mode="kid"] .answer-block ol { font-size: 1.15rem; }
+
+/* こどもモードのホーム：デッキ1件が1つの大きなボタン */
+.kid-deck-list {
+  list-style: none;
+  margin: 16px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.kid-deck {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 76px;
+  padding: 18px 20px;
+  background: var(--surface);
+  color: var(--text);
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
+  font: inherit;
+  font-size: 1.25rem;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+.kid-deck:hover:not(:disabled) { border-color: var(--primary); background: var(--hover); }
+.kid-deck:disabled { opacity: 0.45; cursor: default; }
+.kid-deck-name { min-width: 0; }
+.kid-deck .badge.due { flex: 0 0 auto; font-size: 0.95rem; font-weight: 700; padding: 2px 12px; }
+/* おとなモードへの出口（タイトル長押し）の案内は目立たせない */
+.kid-exit-hint { margin-top: auto; padding-top: 24px; text-align: center; }
+/* 長押し中に文字が選択されると操作が途切れるため抑止する */
+.app-header h1.holdable {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}

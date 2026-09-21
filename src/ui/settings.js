@@ -2,8 +2,9 @@
 import * as db from '../db.js';
 import { DEFAULT_SETTINGS, SETTING_FIELDS } from '../settings.js';
 import { checkStorage, getStorageState } from '../pwa.js';
+import { MODE_OPTIONS, loadMode, setMode } from '../mode.js';
 import { DEFAULT_THEME, THEME_OPTIONS, loadThemePref, setTheme } from '../theme.js';
-import { h, header, toast } from './dom.js';
+import { h, header, navigate, toast } from './dom.js';
 
 export async function renderSettings(root, ctx) {
   const view = h('div', { class: 'screen' });
@@ -11,7 +12,7 @@ export async function renderSettings(root, ctx) {
 
   // 表示（テーマは端末ごとの設定なのでlocalStorageに保存する）
   view.appendChild(h('h2', { class: 'section' }, '表示'));
-  view.appendChild(h('div', { class: 'form' }, buildThemeField()));
+  view.appendChild(h('div', { class: 'form' }, buildModeField(), buildThemeField()));
 
   view.appendChild(h('h2', { class: 'section' }, '出題と採点'));
   const current = { ...ctx.settings };
@@ -82,6 +83,37 @@ export async function renderSettings(root, ctx) {
       )
     );
   }
+}
+
+function buildModeField() {
+  const pref = loadMode();
+  const sel = h(
+    'select',
+    {
+      class: 'input',
+      onchange: () => {
+        if (setMode(sel.value) !== 'kid') return;
+        // こどもモードではこの設定画面を開けないのでホームへ戻す
+        toast('こどもモードにしました');
+        navigate('#/');
+      },
+    },
+    MODE_OPTIONS.map(([v, label]) => h('option', { value: v, selected: v === pref }, label))
+  );
+  return h(
+    'div',
+    { class: 'field' },
+    h('label', {}, '表示モード'),
+    sel,
+    h(
+      'p',
+      { class: 'hint' },
+      'こどもにすると、デッキを選んで暗記を始めるだけの画面になります。' +
+        'カードの編集・CSV・この設定画面は開けません。'
+    ),
+    h('p', { class: 'hint' }, 'ホーム画面のタイトルを長押しすると、おとなに戻せます'),
+    h('p', { class: 'hint' }, 'この端末のこのブラウザだけに保存されます')
+  );
 }
 
 function buildThemeField() {
