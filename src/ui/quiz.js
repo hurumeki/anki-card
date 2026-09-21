@@ -6,6 +6,7 @@ import { startSession } from '../session.js';
 import { shuffle } from '../util.js';
 import { setSessionActive } from '../pwa.js';
 import { isKidMode } from '../mode.js';
+import { w } from '../words.js';
 import { actionBar, barRow, confirmDialog, h, navigate, syncBarHeight, toast, truncate } from './dom.js';
 
 // 判定は文字ではなく、次回出題日の右の矢印と色で示す（↗ 上がった / → 変わらず / ↘ 下がった）
@@ -36,18 +37,16 @@ export async function renderQuiz(root, ctx, deckId) {
       h(
         'div',
         { class: 'screen' },
-        h('header', { class: 'app-header' }, h('a', { class: 'back', href: '#/' }, '←'), h('h1', {}, '暗記')),
+        h('header', { class: 'app-header' }, h('a', { class: 'back', href: '#/' }, '←'), h('h1', {}, w('quizTitle'))),
         h(
           'div',
           { class: 'notice' },
-          h('strong', {}, '出題対象のカードがありません'),
-          h('p', {}, ctx.settings.scope === 'review'
-            ? '本日復習するカードはありません。設定の出題範囲を「全て」にすると、期日に関係なく出題できます。'
-            : 'このデッキにはカードがありません。')
+          h('strong', {}, w('emptyTitle')),
+          h('p', {}, ctx.settings.scope === 'review' ? w('emptyReview') : w('emptyDeck'))
         ),
         // こどもモードではカード一覧・設定へ入れないため、ホームへ戻る道だけを残す
         isKidMode()
-          ? actionBar(barRow('main', h('a', { class: 'btn primary', href: '#/' }, 'ホームへ')))
+          ? actionBar(barRow('main', h('a', { class: 'btn primary', href: '#/' }, w('toHome'))))
           : actionBar(
             barRow(
               'main',
@@ -93,14 +92,14 @@ function drawCurrent(view, ctx, session, deckId) {
           class: 'btn small',
           onclick: async () => {
             const ok = await confirmDialog(
-              'セットの中断',
-              'ここまでの回答でリザルトを表示します。よろしいですか？',
-              '中断する'
+              w('stopTitle'),
+              w('stopConfirm'),
+              w('stop')
             );
             if (ok) finish(view, ctx, session, deckId);
           },
         },
-        '中断する'
+        w('stop')
       )
     )
   );
@@ -123,13 +122,13 @@ function drawCurrent(view, ctx, session, deckId) {
       onclick: async () => {
         const moved = await session.undo();
         if (!moved) {
-          toast('これ以上戻れません');
+          toast(w('undoLimit'));
           return;
         }
         drawCurrent(view, ctx, session, deckId);
       },
     },
-    'やり直し'
+    w('undo')
   );
 
   // 主操作のスロット。1画面ぶんの操作が同じ位置で入れ替わる
@@ -170,7 +169,7 @@ function drawCurrent(view, ctx, session, deckId) {
 
   if (selfJudge) {
     // 左＝解答を表示 / 右＝わかる。表示後は 左＝あとでやる（不正解）/ 右＝おぼえた（正解）
-    const reveal = h('button', { class: 'btn' }, '解答を表示');
+    const reveal = h('button', { class: 'btn' }, w('showAnswer'));
     reveal.addEventListener('click', () => {
       // この問題の解答を出したら、前問の解答は役目を終える
       if (prevRow) prevRow.remove();
@@ -182,7 +181,7 @@ function drawCurrent(view, ctx, session, deckId) {
         submitSelf(result);
       };
       mainSlot.replaceChildren(
-        h('button', { class: 'btn wrong', onclick: judge('incorrect') }, 'あとでやる'),
+        h('button', { class: 'btn wrong', onclick: judge('incorrect') }, w('missedIt')),
         h('button', { class: 'btn correct', onclick: judge('correct') }, 'おぼえた')
       );
       syncBarHeight();
@@ -197,7 +196,7 @@ function drawCurrent(view, ctx, session, deckId) {
   }
 
   // 画面内機能
-  const checkBtn = h('button', { class: 'btn small' }, 'チェック');
+  const checkBtn = h('button', { class: 'btn small' }, w('check'));
   db.getReviewState(card.cardId).then((rs) => {
     if (rs && rs.checked) checkBtn.classList.add('on');
   });
@@ -205,7 +204,7 @@ function drawCurrent(view, ctx, session, deckId) {
     const rs = await db.getReviewState(card.cardId);
     const next = await db.setChecked(card.cardId, !(rs && rs.checked));
     checkBtn.classList.toggle('on', !!(next && next.checked));
-    toast(next && next.checked ? 'チェックを付けました' : 'チェックを外しました');
+    toast(next && next.checked ? w('checkOn') : w('checkOff'));
   });
 
   const skipBtn = h(
@@ -218,7 +217,7 @@ function drawCurrent(view, ctx, session, deckId) {
         drawCurrent(view, ctx, session, deckId);
       },
     },
-    'スキップ'
+    w('skip')
   );
 
   view.appendChild(
@@ -246,7 +245,7 @@ function prevAnswerRow(session) {
   return h(
     'div',
     { class: 'prev-answer' },
-    h('span', { class: 'label' }, '前問の解答'),
+    h('span', { class: 'label' }, w('prevAnswer')),
     h('span', { class: 'text' }, answerText(prev.card))
   );
 }
@@ -263,7 +262,7 @@ function nextButton(view, ctx, session, deckId, disabled = false) {
         drawCurrent(view, ctx, session, deckId);
       },
     },
-    session.index + 1 >= session.length ? 'リザルトへ' : '次へ'
+    session.index + 1 >= session.length ? w('toResult') : w('next')
   );
 }
 
@@ -485,6 +484,10 @@ function resultArrow(result) {
 
 export function scoreText(score, detail, settings) {
   const pct = Math.round(score * 100);
+  if (isKidMode()) {
+    // こどもモードでは一致率の呼び分けをせず、「何問あっていたか」だけを示す
+    return detail ? `${detail.correct}/${detail.total} せいかい` : `${pct}% せいかい`;
+  }
   if (detail && detail.kind === 'matching') {
     return `${detail.correct}/${detail.total} 正解（${pct}%）`;
   }
@@ -547,7 +550,7 @@ export function renderResult(view, ctx, session, deckId) {
       'header',
       { class: 'app-header' },
       h('a', { class: 'back', href: '#/' }, '←'),
-      h('h1', {}, 'リザルト')
+      h('h1', {}, w('resultTitle'))
     )
   );
   view.appendChild(
@@ -557,14 +560,14 @@ export function renderResult(view, ctx, session, deckId) {
       summaryChip('correct', summary.correct),
       summaryChip('partial', summary.partial),
       summaryChip('incorrect', summary.incorrect),
-      h('span', { class: 'sum skipped' }, `スキップ ${summary.skipped}`)
+      h('span', { class: 'sum skipped' }, `${w('skipped')} ${summary.skipped}`)
     )
   );
 
   const list = h('ul', { class: 'result-list' });
   const items = session.answeredItems();
   if (items.length === 0) {
-    list.appendChild(h('li', { class: 'empty' }, '回答した問題はありません'));
+    list.appendChild(h('li', { class: 'empty' }, w('noAnswered')));
   }
   for (const item of items) {
     const card = session.cardFor(item.cardId);
@@ -584,7 +587,7 @@ export function renderResult(view, ctx, session, deckId) {
           }
         },
       },
-      '詳細'
+      w('detail')
     );
     const checkbox = h('input', { type: 'checkbox' });
     db.getReviewState(item.cardId).then((rs) => {
@@ -606,19 +609,19 @@ export function renderResult(view, ctx, session, deckId) {
           h(
             'span',
             { class: 'result-meta' },
-            item.result === 'skipped' ? h('span', { class: 'tag skipped' }, 'スキップ') : null,
+            item.result === 'skipped' ? h('span', { class: 'tag skipped' }, w('skipped')) : null,
             item.score === null || item.score === undefined
               ? null
               : h('span', { class: 'tag' }, `${Math.round(item.score * 100)}%`),
             h(
               'span',
               { class: `tag due ${item.result}` },
-              item.nextDueDate ? `次回 ${item.nextDueDate}` : '次回 変更なし',
+              item.nextDueDate ? `${w('dueNext')} ${item.nextDueDate}` : w('dueNone'),
               resultArrow(item.result)
             )
           )
         ),
-        h('div', { class: 'result-actions' }, h('label', { class: 'check' }, checkbox, 'チェック'), toggle),
+        h('div', { class: 'result-actions' }, h('label', { class: 'check' }, checkbox, w('check')), toggle),
         detail
       )
     );
@@ -628,7 +631,7 @@ export function renderResult(view, ctx, session, deckId) {
     actionBar(
       barRow(
         'sub',
-        h('button', { class: 'btn', onclick: () => navigate('#/') }, 'ホームへ'),
+        h('button', { class: 'btn', onclick: () => navigate('#/') }, w('toHome')),
         deckId && !isKidMode()
           ? h('button', { class: 'btn', onclick: () => navigate(`#/deck/${deckId}`) }, 'カード一覧へ')
           : null
@@ -636,7 +639,7 @@ export function renderResult(view, ctx, session, deckId) {
       barRow(
         'main',
         // ホームの「暗記開始」と同じく、同じデッキで新しいセットを組み直す
-        h('button', { class: 'btn primary', onclick: () => ctx.rerender() }, '続ける')
+        h('button', { class: 'btn primary', onclick: () => ctx.rerender() }, w('again'))
       )
     )
   );

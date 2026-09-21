@@ -3,6 +3,7 @@ import * as db from '../db.js';
 import { BACKUP_WARN_DAYS } from '../settings.js';
 import { daysBetween } from '../util.js';
 import { isKidMode, setMode } from '../mode.js';
+import { w } from '../words.js';
 import {
   actionBar,
   barRow,
@@ -171,16 +172,12 @@ async function renderKidHome(root, ctx) {
   }
   view.appendChild(list);
 
-  view.appendChild(
-    h('p', { class: 'hint kid-exit-hint' }, 'おとなの方へ：タイトルを長押し')
-  );
-
   root.appendChild(view);
 }
 
 /** こどもモードのヘッダ。タイトルの長押しだけがおとなモードへの出口 */
 function kidHeader(ctx) {
-  const title = h('h1', { class: 'holdable' }, '暗記アプリ');
+  const title = h('h1', { class: 'holdable' }, w('appTitle'));
   onLongPress(title, async () => {
     const ok = await confirmDialog(
       'おとなモードに戻す',

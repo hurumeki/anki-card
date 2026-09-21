@@ -635,8 +635,6 @@ textarea.input { resize: vertical; }
 .kid-deck:disabled { opacity: 0.45; cursor: default; }
 .kid-deck-name { min-width: 0; }
 .kid-deck .badge.due { flex: 0 0 auto; font-size: 0.95rem; font-weight: 700; padding: 2px 12px; }
-/* おとなモードへの出口（タイトル長押し）の案内は目立たせない */
-.kid-exit-hint { margin-top: auto; padding-top: 24px; text-align: center; }
 /* 長押し中に文字が選択されると操作が途切れるため抑止する */
 .app-header h1.holdable {
   user-select: none;

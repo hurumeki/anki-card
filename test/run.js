@@ -11,6 +11,7 @@ import { buildQueue } from '../src/session.js';
 import { DEFAULT_SETTINGS } from '../src/settings.js';
 import { normalizeTheme, resolveTheme } from '../src/theme.js';
 import { isBlockedInKidMode, normalizeMode } from '../src/mode.js';
+import { WORDS, w } from '../src/words.js';
 
 const S = { ...DEFAULT_SETTINGS };
 
@@ -292,4 +293,19 @@ test('mode: 表示モードの正規化と、こどもモードで塞ぐ画面',
   // ホーム（undefined）と暗記セットは通す
   assert.ok(!isBlockedInKidMode(undefined));
   assert.ok(!isBlockedInKidMode('session'));
+});
+
+test('words: こどもモードの文言表（仕様6.5）', () => {
+  for (const [key, pair] of Object.entries(WORDS)) {
+    assert.ok(Array.isArray(pair) && pair.length === 2, `${key} は［おとな, こども］の2件`);
+    for (const text of pair) {
+      assert.equal(typeof text, 'string', `${key} は文字列`);
+      assert.ok(text.trim() !== '', `${key} は空でない`);
+    }
+    assert.notEqual(pair[0], pair[1], `${key} は言い換えになっている`);
+  }
+
+  // localStorage のないNode上ではおとなモード扱いになる
+  assert.equal(w('stop'), WORDS.stop[0]);
+  assert.throws(() => w('存在しないキー'), /未定義の文言キー/);
 });
