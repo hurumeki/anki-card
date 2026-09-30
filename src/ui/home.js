@@ -18,6 +18,38 @@ import {
 } from './dom.js';
 import { installGuide, isStandalone, refreshUpdateNotice } from '../pwa.js';
 
+const INSTALL_DISMISS_KEY = 'dismissed:install';
+const BACKUP_DISMISS_KEY = 'dismissed:backup';
+
+/** 注意メッセージを閉じた日時（ISO文字列）。未設定・読めない場合は null */
+function readDismissed(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+/** 注意メッセージの閉じるボタン。押すと非表示にし、閉じた日時を記録する */
+function dismissButton(notice, key) {
+  return h(
+    'button',
+    {
+      class: 'notice-close',
+      'aria-label': '閉じる',
+      onclick: () => {
+        try {
+          localStorage.setItem(key, new Date().toISOString());
+        } catch {
+          // 保存できなくても、この画面では閉じる
+        }
+        notice.remove();
+      },
+    },
+    '×'
+  );
+}
+
 export async function renderHome(root, ctx) {
   if (isKidMode()) return renderKidHome(root, ctx);
   const settings = ctx.settings;
@@ -38,25 +70,33 @@ export async function renderHome(root, ctx) {
     )
   );
 
-  if (!isStandalone()) view.appendChild(installGuide());
+  if (!isStandalone() && !readDismissed(INSTALL_DISMISS_KEY)) {
+    const guide = installGuide();
+    guide.prepend(dismissButton(guide, INSTALL_DISMISS_KEY));
+    view.appendChild(guide);
+  }
 
   const warnDays =
     settings.lastExportedAt === null ? Infinity : daysBetween(settings.lastExportedAt);
-  if (warnDays >= BACKUP_WARN_DAYS) {
-    view.appendChild(
+  const backupDismissed = readDismissed(BACKUP_DISMISS_KEY);
+  if (
+    warnDays >= BACKUP_WARN_DAYS &&
+    !(backupDismissed && daysBetween(backupDismissed) < BACKUP_WARN_DAYS)
+  ) {
+    const notice = h(
+      'div',
+      { class: 'notice warn' },
+      h('strong', {}, 'バックアップをおすすめします'),
       h(
-        'div',
-        { class: 'notice warn' },
-        h('strong', {}, 'バックアップをおすすめします'),
-        h(
-          'p',
-          {},
-          settings.lastExportedAt === null
-            ? 'まだ一度もCSVエクスポートしていません。カード一覧画面からエクスポートできます。'
-            : `最終エクスポートから${warnDays}日経過しています。カード一覧画面からエクスポートできます。`
-        )
+        'p',
+        {},
+        settings.lastExportedAt === null
+          ? 'まだ一度もCSVエクスポートしていません。カード一覧画面からエクスポートできます。'
+          : `最終エクスポートから${warnDays}日経過しています。カード一覧画面からエクスポートできます。`
       )
     );
+    notice.prepend(dismissButton(notice, BACKUP_DISMISS_KEY));
+    view.appendChild(notice);
   }
 
   const list = h('ul', { class: 'deck-list' });
