@@ -581,6 +581,7 @@ export function renderResult(view, ctx, session, deckId) {
           detail.hidden = !detail.hidden;
           if (!loaded) {
             loaded = true;
+            detail.appendChild(h('p', { class: 'question' }, card.question));
             detail.appendChild(answerBlock(card));
             const exp = explanationBlock(card);
             if (exp) detail.appendChild(exp);
