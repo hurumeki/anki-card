@@ -20,6 +20,25 @@ npm run ci            # 書式チェック＋テスト（CIと同じ内容）
 
 Service Worker を有効にするため、`file://` ではなく HTTP(S) で開いてください。
 
+### 問題データの作成（AI向けスキル・プロンプト）
+
+インポート用CSVをAIに作らせるための指示を用意しています。
+「〇〇に関する問題データを作成して」「この内容から問題データを1問1答で10問作成して」のように頼めます。
+
+| 使う場所 | 指示 |
+|---|---|
+| Claude Code（このリポジトリ上） | スキル `.claude/skills/make-cards/SKILL.md`。依頼すると自動で使われ、`cards/` にCSVを保存して検証まで行う |
+| その他のAIチャット | `prompts/make-cards.md` の本文を貼り付け、末尾の【依頼】欄を書き換える |
+
+`cards/` はgitの管理対象外です（`.gitignore`）。問題データは別リポジトリで管理してください。
+
+できたCSVはアプリと同じ規則（仕様7.3）で検証できます。エラーがあれば終了コード1になり、
+重複した選択肢・問題文などは警告として表示します。
+
+```bash
+node tools/validate-cards.js cards/example.csv
+```
+
 ### GitHub Pages への配信
 
 リポジトリの Settings → Pages で「Deploy from a branch」を選び、対象ブランチのルート（`/`）を指定します。
